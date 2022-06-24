@@ -1,4 +1,4 @@
-package com.home365.airlines.responses;
+package com.home365.airlines.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,9 +7,11 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class AirlineResponseObject {
+@AllArgsConstructor
+public class AircraftDto {
+    private Long ownerId;
     private String name;
-    private Double currentBalance;
+    private Double price;
+    private Double maxDistance;
 }

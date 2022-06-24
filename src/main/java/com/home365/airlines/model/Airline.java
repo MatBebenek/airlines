@@ -38,4 +38,12 @@ public class Airline {
         this.budget = budget;
         this.homeBase = homeBase;
     }
+
+    public void increaseBudget(Double amount){
+        this.budget += amount;
+    }
+
+    public void decreaseBudget(Double amount){
+        this.budget -= amount;
+    }
 }

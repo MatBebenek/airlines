@@ -5,7 +5,7 @@ import com.home365.airlines.model.Airline;
 import com.home365.airlines.model.Destination;
 import com.home365.airlines.model.Location;
 import com.home365.airlines.repositories.AirlineRepository;
-import com.home365.airlines.responses.AirlineResponseObject;
+import com.home365.airlines.responses.AirlinesBudget;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +29,10 @@ public class AirlineController {
     AirlineRepository airlineRepository;
 
     @GetMapping(value = "/airlines")
-    public ResponseEntity<List<AirlineResponseObject>> findAllAirlines() {
+    public ResponseEntity<List<AirlinesBudget>> findAllAirlines() {
         LOG.info("Receiving all airlines with their current balance");
         List<Airline> airlines = airlineRepository.findAll();
-        List<AirlineResponseObject> result = airlines.stream().map(airline -> new AirlineResponseObject(airline.getName(), airline.getBudget())).collect(Collectors.toList());
+        List<AirlinesBudget> result = airlines.stream().map(airline -> new AirlinesBudget(airline.getName(), airline.getBudget())).collect(Collectors.toList());
         return new ResponseEntity<>(result, HttpStatus.OK);
     }
 
