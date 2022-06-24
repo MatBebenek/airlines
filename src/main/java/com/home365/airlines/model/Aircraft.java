@@ -1,12 +1,14 @@
 package com.home365.airlines.model;
 
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
 
 @Entity
 @Table(name = "aircrafts")
 @Data
+@NoArgsConstructor
 public class Aircraft {
 
     @Id
@@ -24,6 +26,6 @@ public class Aircraft {
     private Double maxDistance;
 
     @ManyToOne
-    @JoinColumn(name="owner_id", nullable=false)
+    @JoinColumn(name = "owner_id", nullable = false)
     private Airline owner;
 }

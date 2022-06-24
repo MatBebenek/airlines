@@ -23,8 +23,8 @@ public class Airline {
     @Column(name = "budget")
     private Double budget;
 
-    @OneToOne
-    @JoinColumn(name="homeBase_id")
+    @OneToOne(cascade = CascadeType.ALL)
+    @JoinColumn(name = "homeBase_id")
     private Destination homeBase;
 
     @OneToMany(mappedBy = "owner")
