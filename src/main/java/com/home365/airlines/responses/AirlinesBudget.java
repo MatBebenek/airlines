@@ -10,6 +10,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AirlinesBudget {
-    private String name;
+    private String airlineName;
     private Double currentBalance;
 }

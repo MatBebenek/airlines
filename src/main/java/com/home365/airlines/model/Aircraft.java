@@ -18,8 +18,8 @@ public class Aircraft {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 64)
-    private String name;
+    @Column(name = "aircraft_name", nullable = false, length = 64)
+    private String aircraftName;
 
     @Column(name = "price", nullable = false)
     private Double price;
@@ -32,14 +32,15 @@ public class Aircraft {
     @JsonIgnore
     private Airline owner;
 
-    @Column(name = "createdAt")
+    @Column(name = "created_at")
     private LocalDate createdAt;
-    public void setOwner(Airline airline){
+
+    public void setOwner(Airline airline) {
         this.owner = airline;
         airline.getAircraftList().add(this);
     }
 
-    public void removeOwner(Airline airline){
+    public void removeOwner(Airline airline) {
         this.owner = null;
         airline.getAircraftList().remove(this);
     }

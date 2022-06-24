@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class AircraftDto {
     private Long ownerId;
-    private String name;
+    private String aircraftName;
     private Double price;
     private Double maxDistance;
 }

@@ -1,6 +1,5 @@
 package com.home365.airlines.dto;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.*;
 
 @Getter
@@ -8,7 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class AirlineDto {
-    private String name;
+    private String airlineName;
     private Double budget;
     private DestinationDto homeBase;
 }

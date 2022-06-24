@@ -20,37 +20,41 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.text.DecimalFormat;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @RestController
 public class AirlineController {
 
     private static final Logger LOG = LoggerFactory.getLogger(AirlineController.class);
-    ModelMapper modelMapper = new ModelMapper();
-
     @Autowired
     AirlineRepository airlineRepository;
 
     @Autowired
     DestinationRepository destinationRepository;
+    ModelMapper modelMapper = new ModelMapper();
 
     @GetMapping(value = "/airlines")
     public ResponseEntity<List<AirlinesBudget>> findAllAirlines() {
         LOG.info("Receiving all airlines with their current balance");
         List<Airline> airlines = airlineRepository.findAll();
-        List<AirlinesBudget> result = airlines.stream().map(airline -> new AirlinesBudget(airline.getName(), airline.getBudget())).collect(Collectors.toList());
-        return new ResponseEntity<>(result, HttpStatus.OK);
+        if (airlines.isEmpty()) {
+            LOG.debug("No airline was found. Empty list.");
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } else {
+            List<AirlinesBudget> result = airlines.stream().map(airline -> new AirlinesBudget(airline.getAirlineName(), airline.getBudget())).collect(Collectors.toList());
+            return new ResponseEntity<>(result, HttpStatus.OK);
+        }
     }
 
-    @PostMapping(value = "/addAirline")
-    public ResponseEntity<Airline> addNewAirline(@RequestBody AirlineDto airlineDto) {
+    @PostMapping(value = "/create-airline")
+    public ResponseEntity<Airline> createNewAirline(@RequestBody AirlineDto airlineDto) {
         Location newLocation = modelMapper.map(airlineDto.getHomeBase().getLocationDto(), Location.class);
         Destination newHomeBase = new Destination(airlineDto.getHomeBase().getName(), newLocation);
-        Airline newAirline = new Airline(airlineDto.getName(), airlineDto.getBudget(), newHomeBase);
+        Airline newAirline = new Airline(airlineDto.getAirlineName(), airlineDto.getBudget(), newHomeBase);
         airlineRepository.save(newAirline);
         LOG.info("Added new airline: " + newAirline);
         return new ResponseEntity<Airline>(newAirline, HttpStatus.CREATED);
@@ -67,14 +71,14 @@ public class AirlineController {
     public ResponseEntity<List<DestinationDistances>> findAllReachableDestinations(@RequestParam Long airlineId) {
         Airline airline = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         Double maxDistance = airline.getAircraftList().stream().max((Comparator.comparingDouble(Aircraft::getMaxDistance))).orElseThrow(NoSuchElementException::new).getMaxDistance();
-        List<DestinationDistances> distances = distanceCalculation(airline).stream().filter(distance -> distance.getDistanceInKilometeres() <= maxDistance).collect(Collectors.toList());
+        List<DestinationDistances> distances = distanceCalculation(airline).stream().filter(distance -> distance.getDistanceInKilometers() <= maxDistance).collect(Collectors.toList());
         return new ResponseEntity<>(distances, HttpStatus.OK);
     }
 
     public List<DestinationDistances> distanceCalculation(Airline airline) {
         List<Destination> allDestinations = destinationRepository.findAll();
         List<DestinationDistances> distances = allDestinations.stream().map(destination ->
-                new DestinationDistances(destination.getName(),
+                new DestinationDistances(destination.getDestinationName(),
                         Precision.round(GeoDistanceUtils.haversin(airline.getHomeBase().getLocation().getLatitude(),
                                 airline.getHomeBase().getLocation().getLongitude(),
                                 destination.getLocation().getLatitude(),

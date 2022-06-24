@@ -1,6 +1,5 @@
 package com.home365.airlines.model;
 
-import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import javax.persistence.*;
@@ -18,7 +17,7 @@ public class Airline {
     private Long id;
 
     @Column(name = "name", nullable = false, length = 64)
-    private String name;
+    private String airlineName;
 
     @Column(name = "budget")
     private Double budget;
@@ -33,17 +32,17 @@ public class Airline {
     public Airline() {
     }
 
-    public Airline(String name, Double budget, Destination homeBase) {
-        this.name = name;
+    public Airline(String airlineName, Double budget, Destination homeBase) {
+        this.airlineName = airlineName;
         this.budget = budget;
         this.homeBase = homeBase;
     }
 
-    public void increaseBudget(Double amount){
+    public void increaseBudget(Double amount) {
         this.budget += amount;
     }
 
-    public void decreaseBudget(Double amount){
+    public void decreaseBudget(Double amount) {
         this.budget -= amount;
     }
 }

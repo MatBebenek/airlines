@@ -1,7 +1,6 @@
 package com.home365.airlines.controller;
 
 import com.home365.airlines.dto.AircraftDto;
-import com.home365.airlines.dto.AirlineDto;
 import com.home365.airlines.dto.TransactionDto;
 import com.home365.airlines.exceptions.ResourceNotFoundException;
 import com.home365.airlines.model.Aircraft;
@@ -40,14 +39,14 @@ public class AircraftController {
     public ResponseEntity<Aircraft> addAircraftToAirline(@RequestBody AircraftDto aircraftDto) {
         Aircraft newAircraft = new Aircraft();
         Long airlineId = aircraftDto.getOwnerId();
-        newAircraft.setName(aircraftDto.getName());
+        newAircraft.setAircraftName(aircraftDto.getAircraftName());
         newAircraft.setPrice(aircraftDto.getPrice());
         newAircraft.setMaxDistance(aircraftDto.getMaxDistance());
         Airline owner = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         newAircraft.setOwner(owner);
         newAircraft.setCreatedAt(LocalDate.now());
         aircraftRepository.save(newAircraft);
-        LOG.info("Added new aircraft " + newAircraft.getName() + " for airline " + owner.getName());
+        LOG.info("Added new aircraft " + newAircraft.getAircraftName() + " for airline " + owner.getAirlineName());
         return new ResponseEntity<Aircraft>(newAircraft, HttpStatus.CREATED);
     }
 
@@ -69,6 +68,6 @@ public class AircraftController {
         } else {
             return new ResponseEntity<String>("Buyer cannot afford this airplane!", HttpStatus.NOT_ACCEPTABLE);
         }
-        return new ResponseEntity<String>(seller.getName() + " have sold his " + aircraft.getName() + " to " + buyer.getName() + " for " + price, HttpStatus.ACCEPTED);
+        return new ResponseEntity<String>(seller.getAirlineName() + " have sold his " + aircraft.getAircraftName() + " to " + buyer.getAirlineName() + " for " + price, HttpStatus.ACCEPTED);
     }
 }

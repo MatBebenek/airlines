@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class DestinationDistances {
     private String destinationName;
-    private Double distanceInKilometeres;
+    private Double distanceInKilometers;
 }

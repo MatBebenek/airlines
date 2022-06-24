@@ -1,7 +1,6 @@
 package com.home365.airlines.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -17,8 +16,8 @@ public class Destination {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "name", nullable = false, length = 64)
-    private String name;
+    @Column(name = "destination_name", nullable = false, length = 64)
+    private String destinationName;
 
     @OneToOne(cascade = CascadeType.ALL)
     @MapsId
@@ -26,10 +25,10 @@ public class Destination {
 
     @OneToOne(mappedBy = "homeBase")
     @JsonIgnore
-    private Airline airline;
+    private Airline homeBase;
 
-    public Destination(String name, Location location) {
-        this.name = name;
+    public Destination(String destinationName, Location location) {
+        this.destinationName = destinationName;
         this.location = location;
     }
 }
