@@ -42,6 +42,7 @@ public class AircraftController {
         Aircraft newAircraft = new Aircraft();
         Long airlineId = aircraftDto.getOwnerId();
         newAircraft.setAircraftName(aircraftDto.getAircraftName());
+        Airline owner = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         if (aircraftDto.getPrice() < 0) {
             throw new InvalidArgumentException("Aircraft", "price", aircraftDto.getPrice());
         } else {
@@ -52,7 +53,6 @@ public class AircraftController {
         } else {
             newAircraft.setMaxDistance(aircraftDto.getMaxDistance());
         }
-        Airline owner = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         newAircraft.setOwner(owner);
         newAircraft.setCreatedAt(LocalDate.now());
         aircraftRepository.save(newAircraft);
