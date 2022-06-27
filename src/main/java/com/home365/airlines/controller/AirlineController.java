@@ -1,6 +1,8 @@
 package com.home365.airlines.controller;
 
 import com.home365.airlines.dto.AirlineDto;
+import com.home365.airlines.dto.LocationDto;
+import com.home365.airlines.exceptions.InvalidArgumentException;
 import com.home365.airlines.exceptions.ResourceNotFoundException;
 import com.home365.airlines.model.Aircraft;
 import com.home365.airlines.model.Airline;
@@ -12,12 +14,9 @@ import com.home365.airlines.responses.AirlinesBudget;
 import com.home365.airlines.responses.DestinationDistances;
 import org.apache.commons.math3.util.Precision;
 import org.apache.lucene.spatial.util.GeoDistanceUtils;
-import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Comparator;
@@ -35,7 +34,6 @@ public class AirlineController {
 
     @Autowired
     DestinationRepository destinationRepository;
-    ModelMapper modelMapper = new ModelMapper();
 
     @GetMapping(value = "/airlines")
     public List<AirlinesBudget> findAllAirlinesAndTheirBudget() {
@@ -51,7 +49,7 @@ public class AirlineController {
 
     @PostMapping(value = "/create-airline")
     public Airline createNewAirline(@RequestBody AirlineDto airlineDto) {
-        Location newLocation = modelMapper.map(airlineDto.getHomeBase().getLocationDto(), Location.class);
+        Location newLocation = validatedLocation(airlineDto.getHomeBase().getLocationDto());
         LOG.debug("New location created: " + newLocation);
         Destination newHomeBase = new Destination(airlineDto.getHomeBase().getName(), newLocation);
         LOG.debug("New destination created: " + newHomeBase);
@@ -91,4 +89,17 @@ public class AirlineController {
             return distances;
         }
     }
+
+    public Location validatedLocation(LocationDto locationDto) {
+        if (90 > locationDto.getLatitude() && locationDto.getLatitude() > -90) {
+            if (180 > locationDto.getLongitude() && locationDto.getLongitude() > -180) {
+                return new Location(locationDto.getLatitude(), locationDto.getLongitude());
+            } else {
+                throw new InvalidArgumentException("Location", "longitude", locationDto.getLongitude());
+            }
+        } else {
+            throw new InvalidArgumentException("Location", "latitude", locationDto.getLatitude());
+        }
+    }
+
 }

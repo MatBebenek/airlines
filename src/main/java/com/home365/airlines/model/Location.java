@@ -1,7 +1,9 @@
 package com.home365.airlines.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
 
 import javax.persistence.*;
 
@@ -21,4 +23,9 @@ public class Location {
 
     @Column(name = "longitude", nullable = false)
     private Double longitude;
+
+    public Location(Double latitude, Double longitude) {
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
 }
