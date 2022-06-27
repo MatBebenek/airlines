@@ -38,52 +38,57 @@ public class AirlineController {
     ModelMapper modelMapper = new ModelMapper();
 
     @GetMapping(value = "/airlines")
-    public ResponseEntity<List<AirlinesBudget>> findAllAirlines() {
+    public List<AirlinesBudget> findAllAirlinesAndTheirBudget() {
         LOG.info("Receiving all airlines with their current balance");
         List<Airline> airlines = airlineRepository.findAll();
         if (airlines.isEmpty()) {
-            LOG.debug("No airline was found. Empty list.");
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            throw new ResourceNotFoundException("Any airline");
         } else {
             List<AirlinesBudget> result = airlines.stream().map(airline -> new AirlinesBudget(airline.getAirlineName(), airline.getBudget())).collect(Collectors.toList());
-            return new ResponseEntity<>(result, HttpStatus.OK);
+            return result;
         }
     }
 
     @PostMapping(value = "/create-airline")
-    public ResponseEntity<Airline> createNewAirline(@RequestBody AirlineDto airlineDto) {
+    public Airline createNewAirline(@RequestBody AirlineDto airlineDto) {
         Location newLocation = modelMapper.map(airlineDto.getHomeBase().getLocationDto(), Location.class);
+        LOG.debug("New location created: " + newLocation);
         Destination newHomeBase = new Destination(airlineDto.getHomeBase().getName(), newLocation);
+        LOG.debug("New destination created: " + newHomeBase);
         Airline newAirline = new Airline(airlineDto.getAirlineName(), airlineDto.getBudget(), newHomeBase);
         airlineRepository.save(newAirline);
-        LOG.info("Added new airline: " + newAirline);
-        return new ResponseEntity<Airline>(newAirline, HttpStatus.CREATED);
+        LOG.info("Created new airline: " + newAirline);
+        return newAirline;
     }
 
     @GetMapping(value = "/distances")
-    public ResponseEntity<List<DestinationDistances>> computeDistancesForAllDestinations(@RequestParam Long airlineId) {
+    public List<DestinationDistances> computeDistancesForAllDestinations(@RequestParam Long airlineId) {
         Airline airline = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         List<DestinationDistances> distances = distanceCalculation(airline);
-        return new ResponseEntity<>(distances, HttpStatus.OK);
+        return distances;
     }
 
     @GetMapping(value = "/destinations")
-    public ResponseEntity<List<DestinationDistances>> findAllReachableDestinations(@RequestParam Long airlineId) {
+    public List<DestinationDistances> findAllReachableDestinations(@RequestParam Long airlineId) {
         Airline airline = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         Double maxDistance = airline.getAircraftList().stream().max((Comparator.comparingDouble(Aircraft::getMaxDistance))).orElseThrow(NoSuchElementException::new).getMaxDistance();
         List<DestinationDistances> distances = distanceCalculation(airline).stream().filter(distance -> distance.getDistanceInKilometers() <= maxDistance).collect(Collectors.toList());
-        return new ResponseEntity<>(distances, HttpStatus.OK);
+        return distances;
     }
 
     public List<DestinationDistances> distanceCalculation(Airline airline) {
         List<Destination> allDestinations = destinationRepository.findAll();
-        List<DestinationDistances> distances = allDestinations.stream().map(destination ->
-                new DestinationDistances(destination.getDestinationName(),
-                        Precision.round(GeoDistanceUtils.haversin(airline.getHomeBase().getLocation().getLatitude(),
-                                airline.getHomeBase().getLocation().getLongitude(),
-                                destination.getLocation().getLatitude(),
-                                destination.getLocation().getLongitude()) / 1000, 2)
-                )).collect(Collectors.toList());
-        return distances;
+        if (allDestinations.isEmpty()) {
+            throw new ResourceNotFoundException("Any destination");
+        } else {
+            List<DestinationDistances> distances = allDestinations.stream().map(destination ->
+                    new DestinationDistances(destination.getDestinationName(),
+                            Precision.round(GeoDistanceUtils.haversin(airline.getHomeBase().getLocation().getLatitude(),
+                                    airline.getHomeBase().getLocation().getLongitude(),
+                                    destination.getLocation().getLatitude(),
+                                    destination.getLocation().getLongitude()) / 1000, 2)
+                    )).collect(Collectors.toList());
+            return distances;
+        }
     }
 }

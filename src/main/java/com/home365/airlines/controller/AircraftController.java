@@ -2,6 +2,8 @@ package com.home365.airlines.controller;
 
 import com.home365.airlines.dto.AircraftDto;
 import com.home365.airlines.dto.TransactionDto;
+import com.home365.airlines.exceptions.InvalidArgumentException;
+import com.home365.airlines.exceptions.NotEnoughResourcesException;
 import com.home365.airlines.exceptions.ResourceNotFoundException;
 import com.home365.airlines.model.Aircraft;
 import com.home365.airlines.model.Airline;
@@ -29,45 +31,56 @@ public class AircraftController {
     AirlineRepository airlineRepository;
 
     @GetMapping(value = "/{id}/aircrafts")
-    public ResponseEntity<List<Aircraft>> findAllAircraftsForAirline(@RequestParam Long airlineId) {
-        LOG.info("Getting all aircrafts for given airline id: " + airlineId);
+    public List<Aircraft> findAllAircraftsForAirlineId(@RequestParam Long airlineId) {
+        LOG.info("Getting all aircrafts for airline with id: " + airlineId);
         Airline airline = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
-        return new ResponseEntity<>(airline.getAircraftList(), HttpStatus.OK);
+        return airline.getAircraftList();
     }
 
-    @PostMapping(value = "/addAircraft")
-    public ResponseEntity<Aircraft> addAircraftToAirline(@RequestBody AircraftDto aircraftDto) {
+    @PostMapping(value = "/create-aircraft")
+    public Aircraft createAircraftForAirline(@RequestBody AircraftDto aircraftDto) {
         Aircraft newAircraft = new Aircraft();
         Long airlineId = aircraftDto.getOwnerId();
         newAircraft.setAircraftName(aircraftDto.getAircraftName());
-        newAircraft.setPrice(aircraftDto.getPrice());
-        newAircraft.setMaxDistance(aircraftDto.getMaxDistance());
+        if (aircraftDto.getPrice() < 0) {
+            throw new InvalidArgumentException("Aircraft", "price", aircraftDto.getPrice());
+        } else {
+            newAircraft.setPrice(aircraftDto.getPrice());
+        }
+        if (aircraftDto.getMaxDistance() <= 0) {
+            throw new InvalidArgumentException("Aircraft", "max distance", aircraftDto.getMaxDistance());
+        } else {
+            newAircraft.setMaxDistance(aircraftDto.getMaxDistance());
+        }
         Airline owner = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
         newAircraft.setOwner(owner);
         newAircraft.setCreatedAt(LocalDate.now());
         aircraftRepository.save(newAircraft);
-        LOG.info("Added new aircraft " + newAircraft.getAircraftName() + " for airline " + owner.getAirlineName());
-        return new ResponseEntity<Aircraft>(newAircraft, HttpStatus.CREATED);
+        LOG.info("Added new aircraft " + newAircraft.getAircraftName() + " for airline named " + owner.getAirlineName());
+        return newAircraft;
     }
 
     @PutMapping(value = "/sellAircraft")
-    public ResponseEntity<String> sellAircraft(@RequestBody TransactionDto transactionDto) {
+    public String sellAircraft(@RequestBody TransactionDto transactionDto) {
         Long aircraftId = transactionDto.getAircraftId();
         Long buyerId = transactionDto.getBuyerId();
         Aircraft aircraft = aircraftRepository.findById(aircraftId).orElseThrow(() -> new ResourceNotFoundException("Aircraft", "id", aircraftId));
+        LOG.debug("Found aircraft: " + aircraft.toString());
         Period monthsInUse = Period.between(aircraft.getCreatedAt(), LocalDate.now());
         Airline seller = aircraft.getOwner();
         Airline buyer = airlineRepository.findById(buyerId).orElseThrow(() -> new ResourceNotFoundException("Airline(Buyer)", "id", buyerId));
+        LOG.debug("Found buyer airline: " + buyer.toString());
         Double price = aircraft.getPrice() - (1 - (monthsInUse.toTotalMonths() * 0.02));
         if (buyer.getBudget() >= price) {
+            LOG.debug("Transaction in progress!");
             aircraft.removeOwner(seller);
             seller.increaseBudget(price);
             buyer.decreaseBudget(price);
             aircraft.setOwner(buyer);
             aircraftRepository.save(aircraft);
         } else {
-            return new ResponseEntity<String>("Buyer cannot afford this airplane!", HttpStatus.NOT_ACCEPTABLE);
+            throw new NotEnoughResourcesException(buyer.getAirlineName(), "budget", buyer.getBudget());
         }
-        return new ResponseEntity<String>(seller.getAirlineName() + " have sold his " + aircraft.getAircraftName() + " to " + buyer.getAirlineName() + " for " + price, HttpStatus.ACCEPTED);
+        return seller.getAirlineName() + " have sold his " + aircraft.getAircraftName() + " to " + buyer.getAirlineName() + " for " + price;
     }
 }
