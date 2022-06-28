@@ -1,17 +1,16 @@
 package com.home365.airlines.controller;
 
-import com.home365.airlines.dto.AirlineDto;
-import com.home365.airlines.dto.LocationDto;
-import com.home365.airlines.exceptions.InvalidArgumentException;
-import com.home365.airlines.exceptions.ResourceNotFoundException;
-import com.home365.airlines.model.Aircraft;
-import com.home365.airlines.model.Airline;
-import com.home365.airlines.model.Destination;
-import com.home365.airlines.model.Location;
-import com.home365.airlines.repositories.AirlineRepository;
-import com.home365.airlines.repositories.DestinationRepository;
-import com.home365.airlines.responses.AirlinesBudget;
-import com.home365.airlines.responses.DestinationDistances;
+import com.home365.airlines.dto.request.NewAirlineDto;
+import com.home365.airlines.dto.request.NewLocationDto;
+import com.home365.airlines.exception.InvalidArgumentException;
+import com.home365.airlines.exception.ResourceNotFoundException;
+import com.home365.airlines.entity.Airline;
+import com.home365.airlines.entity.Destination;
+import com.home365.airlines.entity.Location;
+import com.home365.airlines.repository.AirlineRepository;
+import com.home365.airlines.repository.DestinationRepository;
+import com.home365.airlines.dto.response.AirlinesWithBudget;
+import com.home365.airlines.dto.response.DestinationWithDistance;
 import org.apache.commons.math3.util.Precision;
 import org.apache.lucene.spatial.util.GeoDistanceUtils;
 import org.slf4j.Logger;
@@ -19,10 +18,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -36,70 +36,79 @@ public class AirlineController {
     DestinationRepository destinationRepository;
 
     @GetMapping(value = "/airlines")
-    public List<AirlinesBudget> findAllAirlinesAndTheirBudget() {
+    public List<AirlinesWithBudget> findAllAirlinesAndTheirBudget() {
         LOG.info("Receiving all airlines with their current balance");
         List<Airline> airlines = airlineRepository.findAll();
         if (airlines.isEmpty()) {
             throw new ResourceNotFoundException("Any airline");
         } else {
-            List<AirlinesBudget> result = airlines.stream().map(airline -> new AirlinesBudget(airline.getAirlineName(), airline.getBudget())).collect(Collectors.toList());
+            List<AirlinesWithBudget> result = airlines.stream().map(airline -> new AirlinesWithBudget(airline.getAirlineName(), airline.getBudget())).collect(Collectors.toList());
             return result;
         }
     }
 
     @PostMapping(value = "/create-airline")
-    public Airline createNewAirline(@RequestBody AirlineDto airlineDto) {
-        Location newLocation = validatedLocation(airlineDto.getHomeBase().getLocationDto());
+    public Airline createNewAirline(@RequestBody NewAirlineDto newAirlineDto) {
+        Location newLocation = validatedLocation(newAirlineDto.getHomeBase().getNewLocationDto());
         LOG.debug("New location created: " + newLocation);
-        Destination newHomeBase = new Destination(airlineDto.getHomeBase().getName(), newLocation);
+        Destination newHomeBase = new Destination(newAirlineDto.getHomeBase().getName(), newLocation);
         LOG.debug("New destination created: " + newHomeBase);
-        Airline newAirline = new Airline(airlineDto.getAirlineName(), airlineDto.getBudget(), newHomeBase);
+        Airline newAirline = new Airline(newAirlineDto.getAirlineName(), newAirlineDto.getBudget(), newHomeBase);
         airlineRepository.save(newAirline);
         LOG.info("Created new airline: " + newAirline);
         return newAirline;
     }
 
     @GetMapping(value = "/distances")
-    public List<DestinationDistances> computeDistancesForAllDestinations(@RequestParam Long airlineId) {
+    public List<DestinationWithDistance> computeDistancesForAllDestinations(@RequestParam Long airlineId) {
         Airline airline = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
-        List<DestinationDistances> distances = distanceCalculation(airline);
+        List<DestinationWithDistance> distances = distanceCalculation(airline);
         return distances;
     }
 
     @GetMapping(value = "/destinations")
-    public List<DestinationDistances> findAllReachableDestinations(@RequestParam Long airlineId) {
+    public List<DestinationWithDistance> findAllReachableDestinations(@RequestParam Long airlineId) {
         Airline airline = airlineRepository.findById(airlineId).orElseThrow(() -> new ResourceNotFoundException("Airline", "id", airlineId));
-        Double maxDistance = airline.getAircraftList().stream().max((Comparator.comparingDouble(Aircraft::getMaxDistance))).orElseThrow(NoSuchElementException::new).getMaxDistance();
-        List<DestinationDistances> distances = distanceCalculation(airline).stream().filter(distance -> distance.getDistanceInKilometers() <= maxDistance).collect(Collectors.toList());
-        return distances;
+        Optional<BigDecimal> maxDistance = airline.getAircraftList().stream()
+                .map(a -> a.getMaxDistance())
+                .max(Comparator.naturalOrder());
+        if (maxDistance.isEmpty()) {
+            throw new NoSuchElementException("Maximum distance for airline not found");
+        } else {
+            List<DestinationWithDistance> distances = distanceCalculation(airline).stream().filter(distance -> BigDecimal.valueOf(distance.getDistanceInKilometers()).compareTo(maxDistance.get()) < 0).collect(Collectors.toList());
+            return distances;
+        }
     }
 
-    public List<DestinationDistances> distanceCalculation(Airline airline) {
+    public List<DestinationWithDistance> distanceCalculation(Airline airline) {
         List<Destination> allDestinations = destinationRepository.findAll();
         if (allDestinations.isEmpty()) {
             throw new ResourceNotFoundException("Any destination");
         } else {
-            List<DestinationDistances> distances = allDestinations.stream().map(destination ->
-                    new DestinationDistances(destination.getDestinationName(),
-                            Precision.round(GeoDistanceUtils.haversin(airline.getHomeBase().getLocation().getLatitude(),
-                                    airline.getHomeBase().getLocation().getLongitude(),
-                                    destination.getLocation().getLatitude(),
-                                    destination.getLocation().getLongitude()) / 1000, 2)
+            List<DestinationWithDistance> distances = allDestinations.stream().map(destination ->
+                    new DestinationWithDistance(destination.getDestinationName(),
+                            Precision.round(GeoDistanceUtils.haversin(airline.getHomeBase().getLocation().getLatitude().doubleValue(),
+                                    airline.getHomeBase().getLocation().getLongitude().doubleValue(),
+                                    destination.getLocation().getLatitude().doubleValue(),
+                                    destination.getLocation().getLongitude().doubleValue()) / 1000, 2)
                     )).collect(Collectors.toList());
             return distances;
         }
     }
 
-    public Location validatedLocation(LocationDto locationDto) {
-        if (90 > locationDto.getLatitude() && locationDto.getLatitude() > -90) {
-            if (180 > locationDto.getLongitude() && locationDto.getLongitude() > -180) {
-                return new Location(locationDto.getLatitude(), locationDto.getLongitude());
+    public Location validatedLocation(NewLocationDto newLocationDto) {
+        if (isBetween(newLocationDto.getLatitude(), BigDecimal.valueOf(-90), BigDecimal.valueOf(90))) {
+            if (isBetween(newLocationDto.getLongitude(), BigDecimal.valueOf(-180), BigDecimal.valueOf(180))) {
+                return new Location(newLocationDto.getLatitude(), newLocationDto.getLongitude());
             } else {
-                throw new InvalidArgumentException("Location", "longitude", locationDto.getLongitude());
+                throw new InvalidArgumentException("Location", "longitude", newLocationDto.getLongitude());
             }
         } else {
-            throw new InvalidArgumentException("Location", "latitude", locationDto.getLatitude());
+            throw new InvalidArgumentException("Location", "latitude", newLocationDto.getLatitude());
         }
     }
 
+    public static <T extends Comparable<T>> boolean isBetween(T value, T start, T end) {
+        return value.compareTo(start) >= 0 && value.compareTo(end) <= 0;
+    }
 }
