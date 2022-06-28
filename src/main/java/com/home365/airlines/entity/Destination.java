@@ -31,6 +31,7 @@ public class Destination extends BaseEntity {
     Location location;
 
     @OneToOne(mappedBy = "homeBase")
+    @JsonIgnore
     Airline homeBase;
 
     public Destination(String destinationName, Location location) {

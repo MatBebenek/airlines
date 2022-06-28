@@ -24,7 +24,7 @@ public class TransactionServiceImpl implements TransactionService {
     private final TimeService timeService;
 
     @Override
-    public String sellAircraft(SaleTransactionDto saleTransactionDto) {
+    public BigDecimal sellAircraft(SaleTransactionDto saleTransactionDto) {
         Aircraft aircraft = aircraftRepository.getEntity(saleTransactionDto.getAircraftId());
         Airline buyer = airlineRepository.getEntity(saleTransactionDto.getBuyerId());
         Period monthsInUse = Period.between(aircraft.getCreatedAt(), timeService.getCurrentTime());
@@ -39,6 +39,6 @@ public class TransactionServiceImpl implements TransactionService {
         } else {
             throw new NotEnoughResourcesException(buyer.getAirlineName(), "budget", buyer.getBudget());
         }
-        return seller.getAirlineName() + " have sold his " + aircraft.getAircraftName() + " to " + buyer.getAirlineName() + " for " + price;
+        return price;
     }
 }

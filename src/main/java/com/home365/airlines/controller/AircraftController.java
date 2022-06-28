@@ -35,6 +35,6 @@ public class AircraftController {
     @PutMapping(value = "/sell-aircraft")
     public String sellAircraft(@Valid @RequestBody SaleTransactionDto saleTransactionDto) {
         log.debug("Initialised the selling transaction");
-        return transactionService.sellAircraft(saleTransactionDto);
+        return "Airplane with id: " + saleTransactionDto.getAircraftId() + " has been sold for " + transactionService.sellAircraft(saleTransactionDto);
     }
 }
