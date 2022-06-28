@@ -2,8 +2,6 @@ package com.home365.airlines.exception;
 
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -28,18 +26,6 @@ public class ResourceNotFoundException extends RuntimeException {
         super(String.format("%s not found.", resourceName));
         log.warn(String.format("%s not found.", resourceName));
         this.resourceName = resourceName;
-    }
-
-    public String getResourceName() {
-        return resourceName;
-    }
-
-    public String getFieldName() {
-        return fieldName;
-    }
-
-    public Object getFieldValue() {
-        return fieldValue;
     }
 }
 

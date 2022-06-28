@@ -6,7 +6,7 @@ import com.home365.airlines.entity.Airline;
 import com.home365.airlines.exception.NotEnoughResourcesException;
 import com.home365.airlines.repository.AircraftRepository;
 import com.home365.airlines.repository.AirlineRepository;
-import com.home365.airlines.service.time.TimeService;
+import com.home365.airlines.service.transaction.time.TimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
